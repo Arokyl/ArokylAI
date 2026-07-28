@@ -14,6 +14,9 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "viem": "^2.17.0"
+  },
   "devDependencies": {
     "typescript": "^5.4.0"
   }

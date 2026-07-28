@@ -1,5 +1,6 @@
 import type OpenAI from 'openai'
 import { encodeFunctionData, parseUnits, zeroAddress } from 'viem'
+import { ExecutionProxyAbi, isNativeToken } from '@somnia-agent/shared'
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 const AUTOMATION_REGISTRY_ADDRESS = (process.env.AUTOMATION_REGISTRY_ADDRESS || '') as `0x${string}`
@@ -228,9 +229,8 @@ export async function executeTool(name: string, args: Record<string, any>): Prom
       const tokenIn = String(args.tokenIn).trim()
       const tokenOut = String(args.tokenOut).trim()
       const amountIn = String(args.amountIn)
-      const isNativeIn = ['eth', 'mon', 'native', '0x', ''].includes(tokenIn.toLowerCase())
-      const normalizedTokenIn = isNativeIn ? zeroAddress : (tokenIn as `0x${string}`)
-      const normalizedTokenOut = ['eth', 'mon', 'native', '0x', ''].includes(tokenOut.toLowerCase()) ? zeroAddress : (tokenOut as `0x${string}`)
+      const normalizedTokenIn = isNativeToken(tokenIn) ? zeroAddress : (tokenIn as `0x${string}`)
+      const normalizedTokenOut = isNativeToken(tokenOut) ? zeroAddress : (tokenOut as `0x${string}`)
       const conditionType = String(args.conditionType)
       const conditionValue = Number(args.conditionValue)
       const expiresInHours = Number(args.expiresInHours ?? 24)

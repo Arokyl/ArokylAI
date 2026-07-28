@@ -4,26 +4,63 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
+    "dev:web": "pnpm --filter @somnia-agent/web dev",
+    "dev:api": "pnpm --filter @somnia-agent/api dev",
+    "dev:agent": "pnpm --filter @somnia-agent/agent dev",
     "build": "turbo run build",
     "build:web": "pnpm --filter @somnia-agent/web build",
     "build:api": "pnpm --filter @somnia-agent/shared build && pnpm --filter @somnia-agent/api build",
     "build:agent": "pnpm --filter @somnia-agent/shared build && pnpm --filter @somnia-agent/agent build",
     "build:backend": "pnpm build:api && pnpm build:agent",
+    "build:contracts": "pnpm --filter @somnia-agent/contracts run build",
     "test": "turbo run test",
+    "test:contracts": "pnpm --filter @somnia-agent/contracts run test",
+    "test:api": "pnpm --filter @somnia-agent/api run test",
+    "test:agent": "pnpm --filter @somnia-agent/agent run test",
+    "test:shared": "pnpm --filter @somnia-agent/shared run test",
+    "test:web": "pnpm --filter @somnia-agent/web run test",
     "lint": "turbo run lint",
+    "lint:contracts": "pnpm --filter @somnia-agent/contracts run lint",
+    "format": "turbo run format",
+    "format:contracts": "pnpm --filter @somnia-agent/contracts run format",
     "typecheck": "turbo run typecheck",
     "typecheck:web": "pnpm --filter @somnia-agent/web typecheck",
-    "clean": "turbo run clean"
+    "typecheck:api": "pnpm --filter @somnia-agent/api typecheck",
+    "typecheck:agent": "pnpm --filter @somnia-agent/agent typecheck",
+    "typecheck:shared": "pnpm --filter @somnia-agent/shared typecheck",
+    "clean": "turbo run clean",
+    "contracts:deploy:monad": "pnpm --filter @somnia-agent/contracts run deploy:monad",
+    "contracts:deploy:arc": "pnpm --filter @somnia-agent/contracts run deploy:arc",
+    "contracts:deploy:direct:monad": "pnpm --filter @somnia-agent/contracts run deploy:direct:monad",
+    "contracts:deploy:direct:arc": "pnpm --filter @somnia-agent/contracts run deploy:direct:arc",
+    "db:generate": "pnpm --filter @somnia-agent/api run db:generate",
+    "db:push": "pnpm --filter @somnia-agent/api run db:push",
+    "db:studio": "pnpm --filter @somnia-agent/api run db:studio",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
     "@types/node": "^20.0.0",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.sol": [
+      "forge fmt"
+    ]
+  }
 }

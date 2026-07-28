@@ -12,9 +12,7 @@ via_ir = false
 runs = 1000
 
 [rpc_endpoints]
-monad  = "${MONAD_RPC}"
+monad = "${MONAD_RPC}"
+arc    = "${ARC_RPC}"
 mainnet = "${ETH_RPC}"
 base    = "${BASE_RPC}"
-
-[etherscan]
-monad = { key = "${MONAD_EXPLORER_KEY}", url = "https://testnet.monadscan.com/api" }

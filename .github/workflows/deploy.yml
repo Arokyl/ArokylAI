@@ -1,0 +1,211 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: '20.x'
+  PNPM_VERSION: '9.0.0'
+
+jobs:
+  deploy-contracts:
+    name: Deploy Smart Contracts
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install contract dependencies
+        working-directory: ./packages/contracts
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Build contracts
+        working-directory: ./packages/contracts
+        run: forge build
+
+      - name: Deploy to Monad Testnet
+        if: github.event.inputs.environment == 'production' || github.event.inputs.environment == 'staging'
+        working-directory: ./packages/contracts
+        env:
+          MONAD_RPC: ${{ secrets.MONAD_RPC }}
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          FEE_VAULT: ${{ secrets.FEE_VAULT }}
+          FEE_BPS: ${{ secrets.FEE_BPS }}
+          MONAD_EXPLORER_KEY: ${{ secrets.MONAD_EXPLORER_KEY }}
+        run: |
+          forge script script/Deploy.s.sol:Deploy \
+            --rpc-url "$MONAD_RPC" \
+            --chain-id 10143 \
+            --broadcast \
+            --legacy \
+            --gas-limit 8000000 \
+            --gas-price 6000000000 \
+            --verify \
+            --etherscan-api-key "$MONAD_EXPLORER_KEY"
+
+      - name: Deploy to Arc Testnet
+        if: github.event.inputs.environment == 'production'
+        working-directory: ./packages/contracts
+        env:
+          ARC_RPC: ${{ secrets.ARC_RPC }}
+          ARC_DEPLOYER_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+          FEE_VAULT: ${{ secrets.FEE_VAULT }}
+          FEE_BPS: ${{ secrets.FEE_BPS }}
+          ARC_EXPLORER_KEY: ${{ secrets.ARC_EXPLORER_KEY }}
+        run: |
+          forge script script/Deploy.s.sol:Deploy \
+            --rpc-url "$ARC_RPC" \
+            --chain-id 13371 \
+            --broadcast \
+            --legacy \
+            --gas-limit 8000000 \
+            --verify \
+            --etherscan-api-key "$ARC_EXPLORER_KEY"
+
+  deploy-api:
+    name: Deploy API
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    needs: deploy-contracts
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared
+        run: pnpm --filter @somnia-agent/shared run build
+
+      - name: Build API
+        run: pnpm --filter @somnia-agent/api run build
+
+      - name: Deploy to Render
+        if: github.event.inputs.environment == 'production'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_API_SERVICE_ID }}
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json"
+
+  deploy-web:
+    name: Deploy Web Frontend
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared
+        run: pnpm --filter @somnia-agent/shared run build
+
+      - name: Build Web
+        run: pnpm run build:web
+        working-directory: ./apps/web
+        env:
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
+          NEXT_PUBLIC_MONAD_RPC: ${{ secrets.NEXT_PUBLIC_MONAD_RPC }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_AGENT_URL: ${{ secrets.NEXT_PUBLIC_AGENT_URL }}
+          NEXT_PUBLIC_EXECUTION_PROXY_MONAD: ${{ secrets.NEXT_PUBLIC_EXECUTION_PROXY_MONAD }}
+
+      - name: Deploy to Vercel
+        if: github.event.inputs.environment == 'production'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        working-directory: ./apps/web
+
+  deploy-agent:
+    name: Deploy AI Agent
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared
+        run: pnpm --filter @somnia-agent/shared run build
+
+      - name: Build Agent
+        run: pnpm --filter @somnia-agent/agent run build
+
+      - name: Deploy to Render
+        if: github.event.inputs.environment == 'production'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_AGENT_SERVICE_ID }}
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json"

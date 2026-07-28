@@ -6,15 +6,16 @@ import { useAccount } from 'wagmi'
 import Image from 'next/image'
 import CommandBar from '@/components/CommandBar'
 import WalletButton from '@/components/WalletButton'
+import RemarkNotification from '@/components/RemarkNotification'
 import { Button } from '@/components/ui/Button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
 
 const features = [
   {
-    icon: '🔒',
-    title: 'Non-Custodial',
-    description: 'Your keys, your crypto. ArokylAI never holds your funds.',
+    icon: '🔐',
+    title: 'Custodial AI Wallet',
+    description: 'ArokylAI manages your wallet with on-chain safety guardrails and real-time AI remarks on every trade.',
   },
   {
     icon: '⚡',
@@ -22,20 +23,15 @@ const features = [
     description: 'Aggregates liquidity across DEXs for optimal execution.',
   },
   {
-    icon: '🛡️',
-    title: 'Risk Analysis',
-    description: 'Every swap includes price impact and gas analysis.',
+    icon: '🧠',
+    title: 'Smart Remarks',
+    description: 'Real-time AI remarks congratulate you on profits, analyze losses, and give actionable advice.',
   },
-]
-
-const stats = [
-  { label: 'Network', value: 'Monad Testnet' },
-  { label: 'Chain ID', value: '10143' },
-  { label: 'Native Token', value: 'MON' },
 ]
 
 export default function Dashboard() {
   const { address, isConnected } = useAccount()
+  const chainId = 10143
   const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null
 
   return (
@@ -55,7 +51,7 @@ export default function Dashboard() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
-              <span className="text-sm font-medium text-primary">AI-Powered Trading Agent</span>
+              <span className="text-sm font-medium text-primary">AI-Powered Custodial Wallet</span>
             </motion.div>
 
             {/* Headline */}
@@ -81,8 +77,8 @@ export default function Dashboard() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              Your intelligent Monad testnet agent for swaps, route comparison, and conditional orders.
-              Natural language interface with institutional-grade execution.
+              Your intelligent custodial wallet agent for Monad & Arc testnets.
+              Swap, compare routes, execute, and get real-time AI remarks on every move.
             </motion.p>
 
             {/* CTAs */}
@@ -107,12 +103,18 @@ export default function Dashboard() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16"
             >
-              {stats.map((stat, i) => (
-                <GlassCard key={stat.label} className="p-4 text-center">
-                  <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</p>
-                </GlassCard>
-              ))}
+              <GlassCard className="p-4 text-center">
+                <p className="text-2xl font-bold text-white mb-1">{isConnected ? shortAddress : '---'}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Connected Wallet</p>
+              </GlassCard>
+              <GlassCard className="p-4 text-center">
+                <p className="text-2xl font-bold text-white mb-1">Arc + Monad</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Networks</p>
+              </GlassCard>
+              <GlassCard className="p-4 text-center">
+                <p className="text-2xl font-bold text-white mb-1">AI</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Remarks Engine</p>
+              </GlassCard>
             </motion.div>
           </div>
         </div>
@@ -202,7 +204,7 @@ export default function Dashboard() {
               <span className="text-lg font-bold text-white">ArokylAI</span>
             </div>
             <p className="text-sm text-gray-500">
-              © 2026 ArokylAI. Built on Monad testnet.
+              Â© 2026 ArokylAI. Built on Monad & Arc testnets.
             </p>
             <div className="flex items-center gap-6">
               <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy</a>
@@ -212,6 +214,9 @@ export default function Dashboard() {
           </div>
         </div>
       </footer>
+
+      {/* AI Remark Notifications */}
+      <RemarkNotification address={address ?? ''} />
     </main>
   )
 }

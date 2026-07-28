@@ -22,6 +22,27 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
     uint256 public constant MAX_SLIPPAGE_BPS = 1000;  // 10% hard cap — anything higher reverts
     address public constant NATIVE           = address(0); // sentinel for native token (ETH/MON)
 
+    // ─── Custodial Wallet State ────────────────────────────────────────
+
+    address public owner;
+    mapping(address => bool) public managedWallets;
+    mapping(address => address) public walletDelegate;
+    mapping(address => uint256) public walletBaseBalance;
+
+    event WalletManaged(address indexed wallet, bool managed);
+    event WalletDelegateSet(address indexed wallet, address indexed delegate);
+    event WalletBaseBalanceSet(address indexed wallet, uint256 baseBalance);
+    event CustodialSwapExecuted(
+        address indexed wallet,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        address aggregator,
+        uint256 feeAmount
+    );
+    event RemarkAcknowledged(address indexed wallet, uint256 remarkId);
+
     // ─── State ──────────────────────────────────────────────────────────────
 
     address public feeVault;
@@ -52,6 +73,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
     error InvalidAmount();
     error FeeTooHigh(uint256 proposed, uint256 max);
     error DeadlineExpired();
+    error UnauthorizedWallet(address wallet);
 
     // ─── Initializer (replaces constructor for upgradeable) ─────────────────
 
@@ -167,12 +189,77 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
 
     // ─── UUPS upgrade authorization ──────────────────────────────────────────
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    // ─── Rescue stuck funds (safety valve) ──────────────────────────────────
+    // ─── Custodial wallet management ──────────────────────────────────
 
-    /// @notice Allows owner to rescue tokens accidentally sent to this contract.
-    ///         This contract should never hold user funds beyond a single transaction.
+    function manageWallet(address wallet, bool managed) external onlyOwner {
+        managedWallets[wallet] = managed;
+        emit WalletManaged(wallet, managed);
+    }
+
+    function setWalletDelegate(address wallet, address delegate) external onlyOwner {
+        require(managedWallets[wallet], "wallet not managed");
+        walletDelegate[wallet] = delegate;
+        emit WalletDelegateSet(wallet, delegate);
+    }
+
+    function setWalletBaseBalance(address wallet, uint256 baseBalance) external onlyOwner {
+        require(managedWallets[wallet], "wallet not managed");
+        walletBaseBalance[wallet] = baseBalance;
+        emit WalletBaseBalanceSet(wallet, baseBalance);
+    }
+
+    // ─── Custodial swap: agent executes on behalf of a managed wallet ─
+
+    function custodialSwap(
+        address wallet,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint256 deadline,
+        address aggregatorTarget,
+        bytes calldata aggregatorCalldata
+    ) external payable nonReentrant returns (uint256 amountOut) {
+        if (!managedWallets[wallet]) revert UnauthorizedWallet(wallet);
+        if (msg.sender != owner) revert Unauthorized();
+        if (amountIn == 0) revert InvalidAmount();
+        if (block.timestamp > deadline) revert DeadlineExpired();
+
+        uint256 balanceBefore = _balanceOf(tokenIn);
+
+        if (tokenIn != NATIVE) {
+            IERC20(tokenIn).safeTransferFrom(wallet, address(this), amountIn);
+            IERC20(tokenIn).approve(aggregatorTarget, amountIn);
+        }
+
+        uint256 nativeValue = tokenIn == NATIVE ? amountIn : 0;
+        (bool success,) = aggregatorTarget.call{value: nativeValue}(aggregatorCalldata);
+        if (!success) revert TransferFailed();
+
+        if (tokenIn != NATIVE) {
+            uint256 leftoverAmount = IERC20(tokenIn).balanceOf(address(this));
+            if (leftoverAmount > 0) {
+                IERC20(tokenIn).safeTransfer(wallet, leftoverAmount);
+            }
+            IERC20(tokenIn).approve(aggregatorTarget, 0);
+        }
+
+        amountOut = _balanceOf(tokenOut) - balanceBefore;
+        if (amountOut < minAmountOut) revert SlippageExceeded(minAmountOut, amountOut);
+
+        uint256 fee = feeBps > 0 ? (amountOut * feeBps) / 10_000 : 0;
+        uint256 userAmount = amountOut - fee;
+
+        if (fee > 0) _transfer(tokenOut, feeVault, fee);
+        _transfer(tokenOut, wallet, userAmount);
+
+        emit CustodialSwapExecuted(wallet, tokenIn, tokenOut, amountIn, userAmount, aggregatorTarget, fee);
+    }
+
+    // ─── Rescue stuck funds (safety valve) ────────────────────────────
+
     function rescueToken(address token, uint256 amount) external onlyOwner {
         if (token == NATIVE) {
             (bool ok,) = payable(owner()).call{value: amount}("");

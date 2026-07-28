@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20.x'
+  PNPM_VERSION: '9.0.0'
+
+jobs:
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck shared package
+        run: pnpm --filter @somnia-agent/shared run typecheck
+
+      - name: Typecheck API
+        run: pnpm --filter @somnia-agent/api run typecheck
+
+      - name: Typecheck Agent
+        run: pnpm --filter @somnia-agent/agent run typecheck
+
+      - name: Typecheck Web
+        run: pnpm --filter @somnia-agent/web run typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint shared
+        run: pnpm --filter @somnia-agent/shared run lint
+
+      - name: Lint API
+        run: pnpm --filter @somnia-agent/api run lint
+
+      - name: Lint Agent
+        run: pnpm --filter @somnia-agent/agent run lint
+
+      - name: Lint Web
+        run: pnpm --filter @somnia-agent/web run lint
+
+      - name: Format contracts
+        run: pnpm --filter @somnia-agent/contracts run lint
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared
+        run: pnpm --filter @somnia-agent/shared run build
+
+      - name: Test shared
+        run: pnpm --filter @somnia-agent/shared run test
+
+      - name: Test API
+        run: pnpm --filter @somnia-agent/api run test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+
+      - name: Test Agent
+        run: pnpm --filter @somnia-agent/agent run test
+
+      - name: Test Web
+        run: pnpm --filter @somnia-agent/web run test
+
+  contracts:
+    name: Smart Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install contract dependencies
+        working-directory: ./packages/contracts
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Build contracts
+        working-directory: ./packages/contracts
+        run: forge build
+
+      - name: Run contract tests
+        working-directory: ./packages/contracts
+        run: forge test -vvv
+
+      - name: Check formatting
+        working-directory: ./packages/contracts
+        run: forge fmt --check
+
+  build:
+    name: Build All Packages
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test, contracts]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Verify web build
+        run: pnpm run build:web

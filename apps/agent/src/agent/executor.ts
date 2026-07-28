@@ -1,11 +1,13 @@
 import OpenAI from 'openai'
 import type { Request, Response } from 'express'
 import { encodeFunctionData, isAddress, zeroAddress } from 'viem'
+import { z } from 'zod'
 import { SYSTEM_PROMPT } from './prompts/system.js'
 import { tools, executeTool, isReturnPlanResult } from './tools/index.js'
 import { orchestrateSubAgents, summarizeOrchestration } from './orchestrator.js'
-import { CHAIN_NAMES } from '@somnia-agent/shared'
+import { CHAIN_NAMES, ExecutionProxyAbi } from '@somnia-agent/shared'
 import type { ExecutionPlan } from '@somnia-agent/shared'
+import { verifyWalletAuth } from './auth.js'
 import {
   conversationMemory,
   type ConversationMemory,
@@ -133,29 +135,21 @@ async function summarizeConversation(_conversationId: string, messages: StoredMe
 conversationMemory.setSummarizer(summarizeConversation)
 
 // ---------------------------------------------------------------------------
-const executionProxyAbi = [
-  {
-    type: 'function',
-    name: 'executeSwap',
-    stateMutability: 'payable',
-    inputs: [
-      { name: 'tokenIn', type: 'address' },
-      { name: 'tokenOut', type: 'address' },
-      { name: 'amountIn', type: 'uint256' },
-      { name: 'minAmountOut', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'aggregatorTarget', type: 'address' },
-      { name: 'aggregatorCalldata', type: 'bytes' },
-    ],
-    outputs: [{ name: 'amountOut', type: 'uint256' }],
-  },
-] as const
+// Execution proxy ABI (shared)
+// ---------------------------------------------------------------------------
 
-interface ChatRequest {
-  message: string
-  walletContext: { address: string; chainId: number; authMessage?: string; authSignature?: string }
-  history?: Array<{ role: 'user' | 'assistant'; content: string }>
-}
+const ChatRequestSchema = z.object({
+  message: z.string().min(1, 'message is required'),
+  walletContext: z.object({
+    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'address must be a valid 0x... hex string'),
+    chainId: z.number().int().positive('chainId must be a positive integer'),
+    authMessage: z.string().optional(),
+    authSignature: z.string().optional(),
+  }),
+  history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).optional(),
+})
+
+interface ChatRequest extends z.infer<typeof ChatRequestSchema> {}
 
 function getCommonReply(message?: string) {
   const text = message?.trim().toLowerCase() ?? ''
@@ -205,7 +199,17 @@ function getCommonReply(message?: string) {
 }
 
 export async function chatHandler(req: Request, res: Response, memory: ConversationMemory = conversationMemory) {
-  const { message, walletContext, history = [] } = req.body as ChatRequest
+  let body: ChatRequest
+  try {
+    body = ChatRequestSchema.parse(req.body)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid request body', issues: err.issues })
+    }
+    return res.status(400).json({ error: 'Invalid request body' })
+  }
+
+  const { message, walletContext, history = [] } = body
 
   if (!message || !walletContext?.address) {
     return res.status(400).json({ error: 'Missing message or walletContext' })
@@ -215,26 +219,30 @@ export async function chatHandler(req: Request, res: Response, memory: Conversat
   const chainName = CHAIN_NAMES[chainId as keyof typeof CHAIN_NAMES] ?? `Chain ${chainId}`
   const conversationId = `${address}:${chainId}`
 
-  const orchestration = await orchestrateSubAgents({ message, address, chainId })
+  let verifiedAddress: string
+  try {
+    verifiedAddress = await verifyWalletAuth(address, authMessage, authSignature)
+  } catch (err) {
+    logJson('warn', 'agent.auth.failed', { conversationId, error: err instanceof Error ? err.message : String(err) })
+    return res.status(401).json({ error: 'Authentication failed', detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  const orchestration = await orchestrateSubAgents({ message, address: verifiedAddress, chainId })
   const orchestrationSummary = summarizeOrchestration(orchestration)
   const commonReply = getCommonReply(message)
   if (commonReply) {
-    // Seed memory so even quick replies build context.
     memory.addMessage(conversationId, 'user', message)
     memory.addMessage(conversationId, 'assistant', commonReply.reply)
     return res.json({ ...commonReply, orchestration })
   }
 
-  // Seed memory from any history provided by the client on a fresh conversation.
-  // Persisted memory is the source of truth thereafter, so we only seed when empty.
   if (history.length && memory.getHistory(conversationId).length === 0) {
     for (const m of history) memory.addMessage(conversationId, m.role, m.content)
   }
 
-  // Build system prompt with current context
   const systemContent = SYSTEM_PROMPT
     .replace('{datetime}', new Date().toISOString())
-    .replace('{address}', address)
+    .replace('{address}', verifiedAddress)
     .replace('{chainId}', chainId.toString())
     .replace('{chainName}', chainName)
     + orchestrationSummary
@@ -262,7 +270,7 @@ export async function chatHandler(req: Request, res: Response, memory: Conversat
   memory.addMessage(conversationId, 'user', message)
 
   const auth =
-    authMessage && authSignature ? { address, message: authMessage, signature: authSignature } : undefined
+    authMessage && authSignature ? { address: verifiedAddress, message: authMessage, signature: authSignature } : undefined
 
   try {
     let reply = ''
@@ -270,7 +278,7 @@ export async function chatHandler(req: Request, res: Response, memory: Conversat
     let orderCreation: { unsignedTx: { to: string; data: string; value: string; gasLimit: string }; order: Record<string, any> } | undefined
     let iterations = 0
     const MAX_ITERATIONS = 6
-    const MAX_COST_USD = 0.50 // Stop if cumulative API cost exceeds 50 cents
+    const MAX_COST_USD = process.env.MAX_COST_USD ? parseFloat(process.env.MAX_COST_USD) : 0.50
     const TIMEOUT_MS = 30_000 // 30 second timeout per request
     const START_TIME = Date.now()
 
@@ -421,7 +429,7 @@ export async function chatHandler(req: Request, res: Response, memory: Conversat
         try {
           const result = await executeTool(toolName, {
             ...toolArgs,
-            address,
+            address: verifiedAddress,
             chainId,
             auth,
           })
@@ -523,7 +531,7 @@ function attachExecutionProxyTx(plan: ExecutionPlan, chainId: number): Execution
   const isNativeInput = tokenIn === zeroAddress
 
   const data = encodeFunctionData({
-    abi: executionProxyAbi,
+    abi: ExecutionProxyAbi,
     functionName: 'executeSwap',
     args: [
       tokenIn,

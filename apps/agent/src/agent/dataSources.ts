@@ -103,7 +103,7 @@ export async function fetchDataSource(name: DataSourceName, context: FetchContex
   }
 }
 
-function expandUrl(url: string, context: FetchContext, apiKey?: string) {
+export function expandUrl(url: string, context: FetchContext, apiKey?: string) {
   const query = context.query ?? ''
   return url
     .replaceAll('{address}', encodeURIComponent(context.address ?? ''))
@@ -113,7 +113,7 @@ function expandUrl(url: string, context: FetchContext, apiKey?: string) {
     .replaceAll('{apiKey}', encodeURIComponent(apiKey ?? ''))
 }
 
-function normalizeItems(data: any, label: string): string[] {
+export function normalizeItems(data: any, label: string): string[] {
   const items = Array.isArray(data)
     ? data
     : Array.isArray(data.items)
@@ -137,7 +137,7 @@ function normalizeItems(data: any, label: string): string[] {
     .filter((item: string) => item.trim().length > 0)
 }
 
-function numberEnv(name: string, fallback: number) {
+export function numberEnv(name: string, fallback: number) {
   const value = Number(process.env[name])
   return Number.isFinite(value) && value > 0 ? value : fallback
 }

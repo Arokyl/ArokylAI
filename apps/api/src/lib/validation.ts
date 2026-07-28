@@ -20,9 +20,9 @@ export function validateAddress(address: unknown): string {
  * Validates a chain ID
  * @throws Error if chainId is invalid
  */
-export function validateChainId(chainId: number): void {
-  const SUPPORTED_CHAINS = [10143, 1, 8453] // Monad testnet, Ethereum, Base
-  if (!SUPPORTED_CHAINS.includes(chainId)) {
-    throw new Error(`Unsupported chain ID: ${chainId}. Supported: ${SUPPORTED_CHAINS.join(', ')}`)
+export function validateChainId(chainId: unknown): void {
+  const SUPPORTED_CHAINS = new Set([10143, 13371, 1, 8453, 42161])
+  if (typeof chainId !== 'number' || !SUPPORTED_CHAINS.has(chainId)) {
+    throw new Error(`Unsupported chain ID: ${chainId}. Supported: ${Array.from(SUPPORTED_CHAINS).join(', ')}`)
   }
 }

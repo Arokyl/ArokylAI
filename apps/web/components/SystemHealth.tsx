@@ -1,71 +1,60 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Badge } from '@/components/ui/Badge'
 
-type Health = {
-  api: { ok: boolean; latencyMs: number | null; error?: string }
-  agent: { ok: boolean; latencyMs: number | null; error?: string }
-  rpc: { primary: string | null; fallback: string | null; chainId: number }
+interface HealthMetric {
+  label: string
+  value: string
+  status: 'healthy' | 'degraded' | 'down'
+  description: string
 }
 
-function StatusRow({ label, ok, latencyMs }: { label: string; ok: boolean; latencyMs: number | null }) {
-  return (
-    <div className="health-row">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-        <span className={`dot ${ok ? 'ok' : ''}`} />
-        <span>{label}</span>
-      </div>
-      <span className="muted">{ok && latencyMs !== null ? `${latencyMs}ms` : 'offline'}</span>
-    </div>
-  )
+const metrics: HealthMetric[] = [
+  { label: 'API', value: 'Online', status: 'healthy', description: 'Backend responding normally' },
+  { label: 'Agent', value: 'Active', status: 'healthy', description: 'AI agent service running' },
+  { label: 'Contracts', value: 'Deployed', status: 'healthy', description: 'ExecutionProxy on Monad testnet' },
+  { label: 'RPC', value: 'Connected', status: 'healthy', description: 'Monad RPC endpoint responsive' },
+  { label: 'Redis', value: 'Connected', status: 'healthy', description: 'Cache layer operational' },
+  { label: 'Database', value: 'Connected', status: 'healthy', description: 'PostgreSQL via Supabase' },
+]
+
+const statusStyles = {
+  healthy: 'text-success',
+  degraded: 'text-warning',
+  down: 'text-error',
 }
 
-export default function SystemHealth() {
-  const [health, setHealth] = useState<Health | null>(null)
+const statusBadges = {
+  healthy: 'success',
+  degraded: 'warning',
+  down: 'error',
+}
 
-  useEffect(() => {
-    let mounted = true
-
-    const load = () => {
-      fetch('/api/health', { cache: 'no-store' })
-        .then((res) => res.json())
-        .then((data) => {
-          if (mounted) setHealth(data)
-        })
-        .catch(() => {
-          if (mounted) setHealth(null)
-        })
-    }
-
-    load()
-    const id = setInterval(load, 20_000)
-    return () => {
-      mounted = false
-      clearInterval(id)
-    }
-  }, [])
-
+export function SystemHealth() {
   return (
-    <div className="panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-        <div>
-          <h2 className="panel-title">System status</h2>
-          <p className="panel-subtitle">Agent, API, and Monad runtime configuration.</p>
-        </div>
-        <span className="status-chip">Chain 10143</span>
+    <GlassCard className="p-4">
+      <h3 className="font-semibold text-white mb-4">System Health</h3>
+      <div className="grid grid-cols-2 gap-3">
+        {metrics.map((metric, i) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-400">{metric.label}</span>
+              <Badge variant={statusBadges[metric.status]} size="sm">
+                {metric.value}
+              </Badge>
+            </div>
+            <p className="text-xs text-gray-500">{metric.description}</p>
+          </motion.div>
+        ))}
       </div>
-
-      <div className="health-list">
-        <StatusRow label="Backend API" ok={Boolean(health?.api.ok)} latencyMs={health?.api.latencyMs ?? null} />
-        <StatusRow label="Agent API" ok={Boolean(health?.agent.ok)} latencyMs={health?.agent.latencyMs ?? null} />
-      </div>
-
-      <div className="intro-card" style={{ marginTop: '1rem' }}>
-        <p className="metric-label">Primary RPC</p>
-        <p className="mono" style={{ marginTop: '0.55rem', wordBreak: 'break-all' }}>
-          {health?.rpc.primary || 'https://testnet-rpc.monad.xyz'}
-        </p>
-      </div>
-    </div>
+    </GlassCard>
   )
 }

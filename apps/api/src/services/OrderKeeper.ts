@@ -16,7 +16,7 @@ import { and, eq, gt, lt } from 'drizzle-orm'
 import pino from 'pino'
 import { db } from '../db/client.js'
 import { conditionalOrders } from '../db/schema.js'
-import type { RpcClient } from '../lib/rpc.js'
+import type { RpcClient } from '@somnia-agent/shared'
 
 export const AUTOMATION_REGISTRY_ABI = [
   'function createOrder(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, uint256 maxGasPrice, uint256 expiresAt, address aggregatorTarget, bytes calldata aggregatorCalldata) returns (uint256)',

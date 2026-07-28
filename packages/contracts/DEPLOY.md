@@ -52,6 +52,58 @@ If you only have a hex private key, convert it to decimal first:
 export DEPLOYER_PRIVATE_KEY=$(node -e 'console.log(BigInt("0xYOUR_PRIVATE_KEY_HERE").toString())')
 ```
 
+## Arc Testnet Deployment (Somnia)
+
+Arc is the testnet for Somnia, Monad's Layer 2. Use the following commands to deploy to Arc.
+
+### Environment
+Add these to `.env` (already present in `.env.example`):
+
+```
+ARC_RPC=https://arc.testnet.somnia.xyz
+ARC_RPC_FALLBACK=https://rpc.ankr.com/arc_testnet
+ARC_CHAIN_ID=13371
+ARC_EXPLORER_URL=https://arc-explorer.somnia.xyz
+ARC_DEPLOYER_PRIVATE_KEY=0
+ARC_EXPLORER_KEY=your_arc_explorer_api_key
+NEXT_PUBLIC_ARC_RPC=https://arc.testnet.somnia.xyz
+NEXT_PUBLIC_ARC_RPC_FALLBACK=https://rpc.ankr.com/arc_testnet
+```
+
+### Deploy to Arc
+```bash
+pnpm --filter @somnia-agent/contracts run deploy:arc
+```
+
+Or manually:
+```bash
+cd packages/contracts
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url "$ARC_RPC" \
+  --chain-id 13371 \
+  --broadcast \
+  --legacy \
+  --gas-limit 8000000
+```
+
+### Direct (non-proxy) deployment to Arc
+```bash
+pnpm --filter @somnia-agent/contracts run deploy:direct:arc
+```
+
+### Chain configuration in foundry.toml
+Arc is now configured in `[rpc_endpoints]`:
+```toml
+[rpc_endpoints]
+monad = "${MONAD_RPC}"
+arc    = "${ARC_RPC}"
+mainnet = "${ETH_RPC}"
+base    = "${BASE_RPC}"
+```
+
+### Shared chain config
+Arc chain ID (`13371`) is now included in `@somnia-agent/shared` as `CHAIN_IDS.ARC` and `CHAIN_NAMES[CHAIN_IDS.ARC] = 'Arc'`.
+
 ## Safe deployment workflow
 Use a step-by-step deployment rather than deploying implementation, proxy, and initialization in one shot.
 
