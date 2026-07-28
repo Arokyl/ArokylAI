@@ -575,4 +575,5 @@ export const AutomationRegistryAbi = [
   ] as const
 
 export const ERC20Abi = [
+] as const
 
