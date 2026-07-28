@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseAuthMessage, verifyWalletAuth } from './auth.ts'
+import { parseAuthMessage, verifyWalletAuth } from './auth.js'
 
 test('parseAuthMessage parses valid JSON string', () => {
   const msg = parseAuthMessage(JSON.stringify({ address: '0x1234', nonce: 'abc', timestamp: 1000 }))

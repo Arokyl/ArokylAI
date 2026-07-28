@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { expandUrl, normalizeItems, numberEnv } from './dataSources.ts'
+import { expandUrl, normalizeItems, numberEnv } from './dataSources.js'
 
 test('expandUrl replaces all placeholders', () => {
   const result = expandUrl('https://example.com/{address}/{chainId}/{query}/{apiKey}', {
