@@ -1,4 +1,0 @@
-{
-  "installCommand": "pnpm install --frozen-lockfile=false",
-  "buildCommand": "node -e \"throw new Error('Set the Vercel project Root Directory to apps/web. Deploying this monorepo root can build the web app into apps/web/.next and leave the deployment with no root output.')\""
-}
