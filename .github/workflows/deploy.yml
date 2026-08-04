@@ -169,7 +169,9 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
-        working-directory: ./apps/web
+        # 'working-directory' is not a valid top-level key for a 'uses' step.
+        # If the action needs to run in a specific directory, change to that
+        # directory in a prior 'run' step or supply an action input if supported.
 
   deploy-agent:
     name: Deploy AI Agent
