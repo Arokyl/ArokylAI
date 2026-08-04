@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck shared package
-        run: pnpm --filter @somnia-agent/shared run typecheck
+      - name: Build + Typecheck shared package
+        run: pnpm --filter @somnia-agent/shared run build && pnpm --filter @somnia-agent/shared run typecheck
 
       - name: Typecheck API
         run: pnpm --filter @somnia-agent/api run typecheck

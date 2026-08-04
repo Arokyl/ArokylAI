@@ -73,7 +73,7 @@ const FALLBACK_PRICES: Record<string, number> = {
   USDC: 1,
   USDT: 1,
   DAI: 1,
-  MON: 0.25,
+  MON: 0,
 }
 
 async function fetchWithRetry(url: string, retries = 2, delayMs = 500): Promise<Response> {
@@ -114,12 +114,6 @@ export class PriceService {
       return envPrice
     }
 
-    const fallback = FALLBACK_PRICES[upper]
-    if (fallback > 0) {
-      await cacheSetex(cacheKey, CACHE_TTL.PRICE, fallback.toString())
-      return fallback
-    }
-
     if (contractAddress && contractAddress !== '0x0000000000000000000000000000000000000000') {
       const cgPrice = await this.tryCoinGeckoByAddress(chainId, contractAddress)
       if (cgPrice > 0) {
@@ -138,6 +132,12 @@ export class PriceService {
     if (coingeckoPrice > 0) {
       await cacheSetex(cacheKey, CACHE_TTL.PRICE, coingeckoPrice.toString())
       return coingeckoPrice
+    }
+
+    const fallback = FALLBACK_PRICES[upper]
+    if (fallback > 0) {
+      await cacheSetex(cacheKey, CACHE_TTL.PRICE, fallback.toString())
+      return fallback
     }
 
     return 0
