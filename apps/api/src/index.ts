@@ -49,7 +49,7 @@ async function main() {
   }
 
   // Routes
-await app.register(portfolioRoutes, { prefix: '/portfolio' })
+  await app.register(portfolioRoutes, { prefix: '/portfolio' })
   await app.register(quotesRoutes,    { prefix: '/quotes'    })
   await app.register(gasRoutes,       { prefix: '/gas'       })
   await app.register(historyRoutes,   { prefix: '/history'   })

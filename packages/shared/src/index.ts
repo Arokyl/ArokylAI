@@ -563,16 +563,16 @@ export const AutomationRegistryAbi = [
     inputs: [
       { name: 'orderId', type: 'uint256', indexed: true },
     ],
-},
-    {
-      type: 'event',
-      name: 'KeeperUpdated',
-      inputs: [
-        { name: 'keeper', type: 'address', indexed: true },
-        { name: 'allowed', type: 'bool', indexed: false },
-      ],
-    },
-  ] as const
+  },
+  {
+    type: 'event',
+    name: 'KeeperUpdated',
+    inputs: [
+      { name: 'keeper', type: 'address', indexed: true },
+      { name: 'allowed', type: 'bool', indexed: false },
+    ],
+  },
+] as const
 
 export const ERC20Abi = [
 ] as const
