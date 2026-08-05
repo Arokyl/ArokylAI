@@ -133,6 +133,12 @@ jobs:
         with:
           version: nightly
 
+      - name: Remove stale contract libraries
+        run: |
+          rm -rf ./packages/contracts/lib/openzeppelin-contracts-upgradeable
+          rm -rf ./packages/contracts/lib/openzeppelin-contracts
+          rm -rf ./packages/contracts/lib/forge-std
+
       - name: Install contract dependencies
         working-directory: ./packages/contracts
         run: |
