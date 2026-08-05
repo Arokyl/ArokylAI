@@ -1,36 +1,52 @@
-'use client'
+'use client';
 
-import { motion } from 'framer-motion'
-import { GlassCard } from '@/components/ui/GlassCard'
-import { Badge } from '@/components/ui/Badge'
+import { motion } from 'framer-motion';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { Badge } from '@/components/ui/Badge';
 
 interface HealthMetric {
-  label: string
-  value: string
-  status: 'healthy' | 'degraded' | 'down'
-  description: string
+  label: string;
+  value: string;
+  status: 'healthy' | 'degraded' | 'down';
+  description: string;
 }
 
 const metrics: HealthMetric[] = [
   { label: 'API', value: 'Online', status: 'healthy', description: 'Backend responding normally' },
   { label: 'Agent', value: 'Active', status: 'healthy', description: 'AI agent service running' },
-  { label: 'Contracts', value: 'Deployed', status: 'healthy', description: 'ExecutionProxy on Monad testnet' },
-  { label: 'RPC', value: 'Connected', status: 'healthy', description: 'Monad RPC endpoint responsive' },
+  {
+    label: 'Contracts',
+    value: 'Deployed',
+    status: 'healthy',
+    description: 'ExecutionProxy on Monad testnet',
+  },
+  {
+    label: 'RPC',
+    value: 'Connected',
+    status: 'healthy',
+    description: 'Monad RPC endpoint responsive',
+  },
   { label: 'Redis', value: 'Connected', status: 'healthy', description: 'Cache layer operational' },
-  { label: 'Database', value: 'Connected', status: 'healthy', description: 'PostgreSQL via Supabase' },
-]
+  {
+    label: 'Database',
+    value: 'Connected',
+    status: 'healthy',
+    description: 'PostgreSQL via Supabase',
+  },
+];
 
-const statusStyles = {
-  healthy: 'text-success',
-  degraded: 'text-warning',
-  down: 'text-error',
-}
+const statusStyles: Record<HealthMetric['status'], 'text-success' | 'text-warning' | 'text-error'> =
+  {
+    healthy: 'text-success',
+    degraded: 'text-warning',
+    down: 'text-error',
+  };
 
-const statusBadges = {
+const statusBadges: Record<HealthMetric['status'], 'success' | 'warning' | 'error'> = {
   healthy: 'success',
   degraded: 'warning',
   down: 'error',
-}
+};
 
 export function SystemHealth() {
   return (
@@ -56,5 +72,5 @@ export function SystemHealth() {
         ))}
       </div>
     </GlassCard>
-  )
+  );
 }

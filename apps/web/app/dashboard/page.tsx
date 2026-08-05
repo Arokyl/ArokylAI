@@ -1,21 +1,22 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { useAccount } from 'wagmi'
-import Image from 'next/image'
-import CommandBar from '@/components/CommandBar'
-import WalletButton from '@/components/WalletButton'
-import RemarkNotification from '@/components/RemarkNotification'
-import { Button } from '@/components/ui/Button'
-import { GlassCard } from '@/components/ui/GlassCard'
-import { Badge } from '@/components/ui/Badge'
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useAccount } from 'wagmi';
+import Image from 'next/image';
+import CommandBar from '@/components/CommandBar';
+import { WalletButton } from '@/components/WalletButton';
+import { RemarkNotification } from '@/components/RemarkNotification';
+import { Button } from '@/components/ui/Button';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { Badge } from '@/components/ui/Badge';
 
 const features = [
   {
     icon: '🔐',
     title: 'Custodial AI Wallet',
-    description: 'ArokylAI manages your wallet with on-chain safety guardrails and real-time AI remarks on every trade.',
+    description:
+      'ArokylAI manages your wallet with on-chain safety guardrails and real-time AI remarks on every trade.',
   },
   {
     icon: '⚡',
@@ -25,14 +26,15 @@ const features = [
   {
     icon: '🧠',
     title: 'Smart Remarks',
-    description: 'Real-time AI remarks congratulate you on profits, analyze losses, and give actionable advice.',
+    description:
+      'Real-time AI remarks congratulate you on profits, analyze losses, and give actionable advice.',
   },
-]
+];
 
 export default function Dashboard() {
-  const { address, isConnected } = useAccount()
-  const chainId = 10143
-  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null
+  const { address, isConnected } = useAccount();
+  const chainId = 10143;
+  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null;
 
   return (
     <main className="relative min-h-screen">
@@ -77,8 +79,8 @@ export default function Dashboard() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              Your intelligent custodial wallet agent for Monad & Arc testnets.
-              Swap, compare routes, execute, and get real-time AI remarks on every move.
+              Your intelligent custodial wallet agent for Monad & Arc testnets. Swap, compare
+              routes, execute, and get real-time AI remarks on every move.
             </motion.p>
 
             {/* CTAs */}
@@ -104,7 +106,9 @@ export default function Dashboard() {
               className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16"
             >
               <GlassCard className="p-4 text-center">
-                <p className="text-2xl font-bold text-white mb-1">{isConnected ? shortAddress : '---'}</p>
+                <p className="text-2xl font-bold text-white mb-1">
+                  {isConnected ? shortAddress : '---'}
+                </p>
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Connected Wallet</p>
               </GlassCard>
               <GlassCard className="p-4 text-center">
@@ -129,9 +133,7 @@ export default function Dashboard() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why choose ArokylAI?
-            </h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why choose ArokylAI?</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Built for traders who demand both simplicity and sophistication
             </p>
@@ -168,9 +170,7 @@ export default function Dashboard() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Start chatting
-            </h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Start chatting</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Connect your wallet and start trading with natural language
             </p>
@@ -194,12 +194,7 @@ export default function Dashboard() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-primary/30 bg-background">
-                <Image
-                  src="/somnia-agent-logo.png"
-                  alt="ArokylAI"
-                  fill
-                  className="object-cover"
-                />
+                <Image src="/somnia-agent-logo.png" alt="ArokylAI" fill className="object-cover" />
               </div>
               <span className="text-lg font-bold text-white">ArokylAI</span>
             </div>
@@ -207,9 +202,15 @@ export default function Dashboard() {
               Â© 2026 ArokylAI. Built on Monad & Arc testnets.
             </p>
             <div className="flex items-center gap-6">
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Terms</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">GitHub</a>
+              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Privacy
+              </a>
+              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Terms
+              </a>
+              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                GitHub
+              </a>
             </div>
           </div>
         </div>
@@ -218,5 +219,5 @@ export default function Dashboard() {
       {/* AI Remark Notifications */}
       <RemarkNotification address={address ?? ''} />
     </main>
-  )
+  );
 }
