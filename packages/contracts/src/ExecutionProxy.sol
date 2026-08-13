@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -24,7 +24,6 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
 
     // ─── Custodial Wallet State ────────────────────────────────────────
 
-    address public owner;
     mapping(address => bool) public managedWallets;
     mapping(address => address) public walletDelegate;
     mapping(address => uint256) public walletBaseBalance;
@@ -78,7 +77,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
     // ─── Initializer (replaces constructor for upgradeable) ─────────────────
 
     function initialize(address _feeVault, uint256 _feeBps) external initializer {
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
 
@@ -223,7 +222,7 @@ function _authorizeUpgrade(address newImplementation) internal override onlyOwne
         bytes calldata aggregatorCalldata
     ) external payable nonReentrant returns (uint256 amountOut) {
         if (!managedWallets[wallet]) revert UnauthorizedWallet(wallet);
-        if (msg.sender != owner) revert Unauthorized();
+        if (msg.sender != owner()) revert Unauthorized();
         if (amountIn == 0) revert InvalidAmount();
         if (block.timestamp > deadline) revert DeadlineExpired();
 

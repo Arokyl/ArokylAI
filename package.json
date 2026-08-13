@@ -62,7 +62,7 @@
       "prettier --write"
     ],
     "*.sol": [
-      "forge fmt"
+      "node scripts/forge-fmt-if-available.cjs"
     ]
   }
 }

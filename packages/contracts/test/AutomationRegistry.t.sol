@@ -62,7 +62,7 @@ contract AutomationRegistryTest is Test {
         ExecutionProxy impl = new ExecutionProxy();
         bytes memory initData = abi.encodeCall(ExecutionProxy.initialize, (address(this), 0)); // 0% fee
         ERC1967Proxy proxyContract = new ERC1967Proxy(address(impl), initData);
-        proxy = ExecutionProxy(payable(address(proxyContract));
+        proxy = ExecutionProxy(payable(address(proxyContract)));
 
         // Deploy registry
         AutomationRegistry regImpl = new AutomationRegistry();
