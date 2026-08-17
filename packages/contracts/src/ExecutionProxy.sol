@@ -18,9 +18,9 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard 
 
     // ─── Constants ──────────────────────────────────────────────────────────
 
-    uint256 public constant MAX_FEE_BPS      = 50;    // 0.5% max protocol fee
-    uint256 public constant MAX_SLIPPAGE_BPS = 1000;  // 10% hard cap — anything higher reverts
-    address public constant NATIVE           = address(0); // sentinel for native token (ETH/MON)
+    uint256 public constant MAX_FEE_BPS = 50; // 0.5% max protocol fee
+    uint256 public constant MAX_SLIPPAGE_BPS = 1000; // 10% hard cap — anything higher reverts
+    address public constant NATIVE = address(0); // sentinel for native token (ETH/MON)
 
     // ─── Custodial Wallet State ────────────────────────────────────────
 
@@ -78,11 +78,10 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard 
 
     function initialize(address _feeVault, uint256 _feeBps) external initializer {
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
 
         if (_feeBps > MAX_FEE_BPS) revert FeeTooHigh(_feeBps, MAX_FEE_BPS);
         feeVault = _feeVault;
-        feeBps   = _feeBps;
+        feeBps = _feeBps;
     }
 
     // ─── Core swap function ──────────────────────────────────────────────────
@@ -109,8 +108,8 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard 
     ) external payable nonReentrant returns (uint256 amountOut) {
         // ── Pre-checks ──────────────────────────────────────────────────────
         if (!approvedTargets[aggregatorTarget]) revert UnauthorizedTarget(aggregatorTarget);
-        if (amountIn == 0)                       revert InvalidAmount();
-        if (block.timestamp > deadline)          revert DeadlineExpired();
+        if (amountIn == 0) revert InvalidAmount();
+        if (block.timestamp > deadline) revert DeadlineExpired();
 
         // ── Pull input token ─────────────────────────────────────────────────
         if (tokenIn != NATIVE) {
@@ -142,7 +141,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard 
         if (amountOut < minAmountOut) revert SlippageExceeded(minAmountOut, amountOut);
 
         // ── Protocol fee ─────────────────────────────────────────────────────
-        uint256 fee        = feeBps > 0 ? (amountOut * feeBps) / 10_000 : 0;
+        uint256 fee = feeBps > 0 ? (amountOut * feeBps) / 10_000 : 0;
         uint256 userAmount = amountOut - fee;
 
         if (fee > 0) _transfer(tokenOut, feeVault, fee);
@@ -187,7 +186,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard 
 
     // ─── UUPS upgrade authorization ──────────────────────────────────────────
 
-function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // ─── Custodial wallet management ──────────────────────────────────
 
@@ -219,9 +218,8 @@ function _authorizeUpgrade(address newImplementation) internal override onlyOwne
         uint256 deadline,
         address aggregatorTarget,
         bytes calldata aggregatorCalldata
-    ) external payable nonReentrant returns (uint256 amountOut) {
+    ) external payable onlyOwner nonReentrant returns (uint256 amountOut) {
         if (!managedWallets[wallet]) revert UnauthorizedWallet(wallet);
-        if (msg.sender != owner()) revert Unauthorized();
         if (amountIn == 0) revert InvalidAmount();
         if (block.timestamp > deadline) revert DeadlineExpired();
 

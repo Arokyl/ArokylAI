@@ -41,7 +41,9 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
     // ─── Events ──────────────────────────────────────────────────────────────
 
-    event OrderCreated(uint256 indexed orderId, address indexed user, address tokenIn, address tokenOut, uint256 amountIn);
+    event OrderCreated(
+        uint256 indexed orderId, address indexed user, address tokenIn, address tokenOut, uint256 amountIn
+    );
     event OrderExecuted(uint256 indexed orderId, uint256 amountOut);
     event OrderCancelled(uint256 indexed orderId);
     event KeeperUpdated(address indexed keeper, bool allowed);
@@ -58,7 +60,6 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
     function initialize(address _executionProxy) external initializer {
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
         executionProxy = _executionProxy;
     }
 
@@ -81,15 +82,15 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
         orderId = nextOrderId++;
         orders[orderId] = ConditionalOrder({
-            user:               msg.sender,
-            tokenIn:            tokenIn,
-            tokenOut:           tokenOut,
-            amountIn:           amountIn,
-            minAmountOut:       minAmountOut,
-            maxGasPrice:        maxGasPrice,
-            expiresAt:          expiresAt,
-            active:             true,
-            aggregatorTarget:   aggregatorTarget,
+            user: msg.sender,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            amountIn: amountIn,
+            minAmountOut: minAmountOut,
+            maxGasPrice: maxGasPrice,
+            expiresAt: expiresAt,
+            active: true,
+            aggregatorTarget: aggregatorTarget,
             aggregatorCalldata: aggregatorCalldata
         });
 
@@ -106,9 +107,9 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
         ConditionalOrder storage order = orders[orderId];
 
-        if (!order.active)                    revert OrderInactive();
+        if (!order.active) revert OrderInactive();
         if (block.timestamp > order.expiresAt) revert OrderExpired();
-        if (tx.gasprice > order.maxGasPrice)  revert GasPriceTooHigh(tx.gasprice, order.maxGasPrice);
+        if (tx.gasprice > order.maxGasPrice) revert GasPriceTooHigh(tx.gasprice, order.maxGasPrice);
 
         // Mark inactive before external call (CEI pattern)
         order.active = false;

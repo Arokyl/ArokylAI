@@ -37,7 +37,7 @@ contract MockAggregator {
     uint256   public outputAmount;
 
     constructor(MockERC20 _out, uint256 _amount) {
-        outputToken  = _out;
+        outputToken = _out;
         outputAmount = _amount;
     }
 
@@ -48,14 +48,14 @@ contract MockAggregator {
 
 contract AutomationRegistryTest is Test {
     AutomationRegistry registry;
-    ExecutionProxy    proxy;
-    MockERC20          tokenIn;
-    MockERC20          tokenOut;
-    MockAggregator     aggregator;
+    ExecutionProxy proxy;
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+    MockAggregator aggregator;
 
-    address owner   = address(this);
-    address user    = makeAddr("user");
-    address keeper  = makeAddr("keeper");
+    address owner = address(this);
+    address user = makeAddr("user");
+    address keeper = makeAddr("keeper");
 
     function setUp() public {
         // Deploy ExecutionProxy
@@ -71,7 +71,7 @@ contract AutomationRegistryTest is Test {
         registry = AutomationRegistry(address(regProxy));
 
         // Deploy tokens
-        tokenIn  = new MockERC20("WETH");
+        tokenIn = new MockERC20("WETH");
         tokenOut = new MockERC20("USDC");
 
         // Deploy mock aggregator
