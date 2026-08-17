@@ -77,6 +77,11 @@ jobs:
       - name: Lint Web
         run: pnpm --filter @somnia-agent/web run lint
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name: Format contracts
         run: pnpm --filter @somnia-agent/contracts run lint
 
@@ -132,6 +137,12 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Remove stale contract libraries
+        run: |
+          rm -rf ./packages/contracts/lib/openzeppelin-contracts-upgradeable
+          rm -rf ./packages/contracts/lib/openzeppelin-contracts
+          rm -rf ./packages/contracts/lib/forge-std
 
       - name: Install contract dependencies
         working-directory: ./packages/contracts

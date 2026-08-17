@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IExecutionProxy.sol";
@@ -12,7 +12,7 @@ import "./interfaces/IExecutionProxy.sol";
 /// @notice Stores conditional swap orders on-chain.
 ///         Off-chain keepers (your backend) monitor conditions and call executeOrder
 ///         when the condition is satisfied. All conditions are re-validated on-chain.
-contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── Types ───────────────────────────────────────────────────────────────
@@ -41,7 +41,9 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
     // ─── Events ──────────────────────────────────────────────────────────────
 
-    event OrderCreated(uint256 indexed orderId, address indexed user, address tokenIn, address tokenOut, uint256 amountIn);
+    event OrderCreated(
+        uint256 indexed orderId, address indexed user, address tokenIn, address tokenOut, uint256 amountIn
+    );
     event OrderExecuted(uint256 indexed orderId, uint256 amountOut);
     event OrderCancelled(uint256 indexed orderId);
     event KeeperUpdated(address indexed keeper, bool allowed);
@@ -57,9 +59,7 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
     // ─── Initializer ─────────────────────────────────────────────────────────
 
     function initialize(address _executionProxy) external initializer {
-        __Ownable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        __Ownable_init(msg.sender);
         executionProxy = _executionProxy;
     }
 
@@ -82,15 +82,15 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
         orderId = nextOrderId++;
         orders[orderId] = ConditionalOrder({
-            user:               msg.sender,
-            tokenIn:            tokenIn,
-            tokenOut:           tokenOut,
-            amountIn:           amountIn,
-            minAmountOut:       minAmountOut,
-            maxGasPrice:        maxGasPrice,
-            expiresAt:          expiresAt,
-            active:             true,
-            aggregatorTarget:   aggregatorTarget,
+            user: msg.sender,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            amountIn: amountIn,
+            minAmountOut: minAmountOut,
+            maxGasPrice: maxGasPrice,
+            expiresAt: expiresAt,
+            active: true,
+            aggregatorTarget: aggregatorTarget,
             aggregatorCalldata: aggregatorCalldata
         });
 
@@ -107,9 +107,9 @@ contract AutomationRegistry is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGu
 
         ConditionalOrder storage order = orders[orderId];
 
-        if (!order.active)                    revert OrderInactive();
+        if (!order.active) revert OrderInactive();
         if (block.timestamp > order.expiresAt) revert OrderExpired();
-        if (tx.gasprice > order.maxGasPrice)  revert GasPriceTooHigh(tx.gasprice, order.maxGasPrice);
+        if (tx.gasprice > order.maxGasPrice) revert GasPriceTooHigh(tx.gasprice, order.maxGasPrice);
 
         // Mark inactive before external call (CEI pattern)
         order.active = false;

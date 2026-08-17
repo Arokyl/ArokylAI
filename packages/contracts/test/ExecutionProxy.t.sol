@@ -43,7 +43,7 @@ contract MockAggregator {
     uint256   public outputAmount;
 
     constructor(MockERC20 _out, uint256 _amount) {
-        outputToken  = _out;
+        outputToken = _out;
         outputAmount = _amount;
     }
 
@@ -59,9 +59,9 @@ contract ExecutionProxyTest is Test {
     MockERC20      tokenOut;
     MockAggregator aggregator;
 
-    address owner   = address(this);
-    address user    = makeAddr("user");
-    address vault   = makeAddr("vault");
+    address owner = address(this);
+    address user = makeAddr("user");
+    address vault = makeAddr("vault");
 
     function setUp() public {
         // Deploy implementation
@@ -73,7 +73,7 @@ contract ExecutionProxyTest is Test {
         proxy = ExecutionProxy(payable(address(proxyContract)));
 
         // Deploy tokens
-        tokenIn  = new MockERC20("WETH");
+        tokenIn = new MockERC20("WETH");
         tokenOut = new MockERC20("USDC");
 
         // Deploy mock aggregator (returns 2000 USDC for 1 WETH)
@@ -87,7 +87,7 @@ contract ExecutionProxyTest is Test {
     }
 
     function test_basicSwap() public {
-        uint256 amountIn     = 1 ether;
+        uint256 amountIn = 1 ether;
         uint256 minAmountOut = 1900e6; // 1900 USDC minimum (5% slippage tolerance)
 
         vm.startPrank(user);
@@ -114,7 +114,7 @@ contract ExecutionProxyTest is Test {
     }
 
     function test_revert_slippageExceeded() public {
-        uint256 amountIn     = 1 ether;
+        uint256 amountIn = 1 ether;
         uint256 minAmountOut = 2100e6; // More than aggregator returns — should revert
 
         vm.startPrank(user);
@@ -172,7 +172,15 @@ contract ExecutionProxyTest is Test {
     function test_revert_zeroAmount() public {
         vm.startPrank(user);
         vm.expectRevert(ExecutionProxy.InvalidAmount.selector);
-        proxy.executeSwap(address(tokenIn), address(tokenOut), 0, 0, block.timestamp + 300, address(aggregator), "");
+        proxy.executeSwap(
+            address(tokenIn),
+            address(tokenOut),
+            0,
+            0,
+            block.timestamp + 300,
+            address(aggregator),
+            ""
+        );
         vm.stopPrank();
     }
 
@@ -194,10 +202,18 @@ contract ExecutionProxyTest is Test {
         vm.startPrank(user);
 
         uint256 vaultBefore = tokenOut.balanceOf(vault);
-        proxy.executeSwap(address(tokenIn), address(tokenOut), amountIn, 0, block.timestamp + 300, address(aggregator), "");
+        proxy.executeSwap(
+            address(tokenIn),
+            address(tokenOut),
+            amountIn,
+            0,
+            block.timestamp + 300,
+            address(aggregator),
+            ""
+        );
 
         uint256 feeCollected = tokenOut.balanceOf(vault) - vaultBefore;
-        uint256 expectedFee  = (expectedOut * 10) / 10_000; // 0.1% fee
+        uint256 expectedFee = (expectedOut * 10) / 10_000; // 0.1% fee
         assertApproxEqRel(feeCollected, expectedFee, 0.01e18, "Fee calculation wrong");
         vm.stopPrank();
     }

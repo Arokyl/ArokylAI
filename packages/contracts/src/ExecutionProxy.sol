@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -13,18 +13,17 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///         builds calldata from an approved aggregator, the user signs and
 ///         broadcasts the transaction directly — this contract never holds funds.
 /// @dev UUPS upgradeable so bugs can be fixed without redeployment of a new address.
-contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── Constants ──────────────────────────────────────────────────────────
 
-    uint256 public constant MAX_FEE_BPS      = 50;    // 0.5% max protocol fee
-    uint256 public constant MAX_SLIPPAGE_BPS = 1000;  // 10% hard cap — anything higher reverts
-    address public constant NATIVE           = address(0); // sentinel for native token (ETH/MON)
+    uint256 public constant MAX_FEE_BPS = 50; // 0.5% max protocol fee
+    uint256 public constant MAX_SLIPPAGE_BPS = 1000; // 10% hard cap — anything higher reverts
+    address public constant NATIVE = address(0); // sentinel for native token (ETH/MON)
 
     // ─── Custodial Wallet State ────────────────────────────────────────
 
-    address public owner;
     mapping(address => bool) public managedWallets;
     mapping(address => address) public walletDelegate;
     mapping(address => uint256) public walletBaseBalance;
@@ -78,13 +77,11 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
     // ─── Initializer (replaces constructor for upgradeable) ─────────────────
 
     function initialize(address _feeVault, uint256 _feeBps) external initializer {
-        __Ownable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        __Ownable_init(msg.sender);
 
         if (_feeBps > MAX_FEE_BPS) revert FeeTooHigh(_feeBps, MAX_FEE_BPS);
         feeVault = _feeVault;
-        feeBps   = _feeBps;
+        feeBps = _feeBps;
     }
 
     // ─── Core swap function ──────────────────────────────────────────────────
@@ -111,8 +108,8 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
     ) external payable nonReentrant returns (uint256 amountOut) {
         // ── Pre-checks ──────────────────────────────────────────────────────
         if (!approvedTargets[aggregatorTarget]) revert UnauthorizedTarget(aggregatorTarget);
-        if (amountIn == 0)                       revert InvalidAmount();
-        if (block.timestamp > deadline)          revert DeadlineExpired();
+        if (amountIn == 0) revert InvalidAmount();
+        if (block.timestamp > deadline) revert DeadlineExpired();
 
         // ── Pull input token ─────────────────────────────────────────────────
         if (tokenIn != NATIVE) {
@@ -144,7 +141,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
         if (amountOut < minAmountOut) revert SlippageExceeded(minAmountOut, amountOut);
 
         // ── Protocol fee ─────────────────────────────────────────────────────
-        uint256 fee        = feeBps > 0 ? (amountOut * feeBps) / 10_000 : 0;
+        uint256 fee = feeBps > 0 ? (amountOut * feeBps) / 10_000 : 0;
         uint256 userAmount = amountOut - fee;
 
         if (fee > 0) _transfer(tokenOut, feeVault, fee);
@@ -189,7 +186,7 @@ contract ExecutionProxy is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardU
 
     // ─── UUPS upgrade authorization ──────────────────────────────────────────
 
-function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // ─── Custodial wallet management ──────────────────────────────────
 
@@ -221,9 +218,8 @@ function _authorizeUpgrade(address newImplementation) internal override onlyOwne
         uint256 deadline,
         address aggregatorTarget,
         bytes calldata aggregatorCalldata
-    ) external payable nonReentrant returns (uint256 amountOut) {
+    ) external payable onlyOwner nonReentrant returns (uint256 amountOut) {
         if (!managedWallets[wallet]) revert UnauthorizedWallet(wallet);
-        if (msg.sender != owner) revert Unauthorized();
         if (amountIn == 0) revert InvalidAmount();
         if (block.timestamp > deadline) revert DeadlineExpired();
 

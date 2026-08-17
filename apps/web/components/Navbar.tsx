@@ -1,18 +1,18 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
-import WalletButton from './WalletButton'
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { WalletButton } from './WalletButton';
 
 const navLinks = [
   { label: 'Features', href: '#features' },
   { label: 'Security', href: '#security' },
   { label: 'Docs', href: '#docs' },
-]
+];
 
 export default function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-background/80 backdrop-blur-xl">
@@ -26,12 +26,7 @@ export default function Navbar() {
             whileTap={{ scale: 0.98 }}
           >
             <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-primary/30 bg-background shadow-[0_0_20px_rgba(109,93,252,0.2)]">
-              <Image
-                src="/somnia-agent-logo.png"
-                alt="ArokylAI"
-                fill
-                className="object-cover"
-              />
+              <Image src="/somnia-agent-logo.png" alt="ArokylAI" fill className="object-cover" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               ArokylAI
@@ -65,9 +60,19 @@ export default function Navbar() {
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               {isMobileMenuOpen ? (
-                <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M4 4L16 16M4 16L16 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               ) : (
-                <path d="M3 6H17M3 10H17M3 14H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M3 6H17M3 10H17M3 14H17"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               )}
             </svg>
           </motion.button>
@@ -103,5 +108,5 @@ export default function Navbar() {
         )}
       </AnimatePresence>
     </nav>
-  )
+  );
 }
